@@ -1,7 +1,7 @@
 ### Lottery Analysis
 
 #originData <- read.csv("20150205.csv")
-
+#setwd("E:/LBH/Dropbox/GitHub/Lottery/")
 ###########################################
 
 ### 執行爬蟲之函數
@@ -24,53 +24,80 @@ executeCrawler49FN <- function(records=nrow(read.csv("originData.csv"))){
 ## output data type:
 ##    a data frame，建議命名為originData
 readFile49FN <- function(sourceFile="originData.csv"){
+  # 讀取檔案，必須能分辨檔案類型
+  # 依照檔案類型，選擇不同的讀檔函數
+  # 目前僅實作csv
   tryCatch({
+    # 切割字串，抓出最後一個點後的字，當作副檔名判斷
     splitSourceName <- unlist(strsplit(sourceFile,"\\."))
     fileType <- splitSourceName[length(splitSourceName)]
+    
+    # 針對該副檔名去判斷，要用何種讀取方式
     switch(fileType,
       csv={
         originData <- read.csv(sourceFile)
         print(paste("讀取csv檔案",sourceFile,"成功",sep=" "))
       }        
     )
-    #originData <- read.csv(sourceFile)
-    #print(paste("讀取檔案",sourceFile,"成功",sep=" "))
+    # 回傳該物件
     return(originData)
   }, error=function(e){
     print("在step01讀取資料出錯")
   }) 
 }
 
-## 產生預設物件，以利下列流程進行
+### 產生預設物件，以利下列流程進行
+## 若originData物件不存在，則使用readFile49FN("originData.csv")生成物件
+## 若originData物件存在，則檢查是否為data.frame，若不為data.frame，則使用readFile49FN("originData.csv")生成物件
+## 若originData物件存在，但欄位不如預期，則使用readFile49FN("originData.csv")生成物件
+## 若讀取失敗，則拋出錯誤，告知函數讀取失敗。
 tryCatch({
   if(!exists("originData")){
+    originData <- readFile49FN("originData.csv")  
+  }else if (class(originData)!="data.frame"){
     originData <- readFile49FN("originData.csv")  
   }  
 },error=function(e){
   print("載入檔案失敗，請檢察step01ReadFileFN()")
 })
 
+### test_readFile49FN測試readFile49FN函數，未完成
+test_readFile49FN <- function(){
+  step01Test <- ""
+  step01Test <- readFile49FN("originData.csv")
+  if(class(stepFailTest)!="data.frame"){
+    print("測試readFile49FN讀取存在的檔案")
+  }
+  stepFailTest <- readFile49FN("20150205.csv")
+  if(class(stepFailTest)!="data.frame"){
+    print("測試readFile49FN讀取不存在的檔案")
+  }
+}
 
-### 測試step01ReadFile函數
-# success!
-# step01Test <- step01ReadFile("20150205.csv")
-# fail!
-# stepFailTest <- step01ReadFile("20150205.csv")
+
   
 ##########################################################
 
 ### 製作生成計數矩陣之函數
 ## input parameters:
 ##    sourceDF:為readFileFN之output，預設該物件名為originData
-##    sourceDFRange:讀入的資料範圍，會將該些資料用來製作計數矩陣
+##    sourceDFRange:讀入的資料範圍(欄)，會將該些資料用來製作計數矩陣
+##    records:指定要讀入多少資料列，預設為全部，使用時機為建立Train、test時使用
 ## output data type:
 ##    a data Frame 關於各號碼在第1-7次抽球時出現的次數
-countMX49FN<- function(sourceDF=originData,sourceDFRange=c(3:9)){
-  
+countMX49FN<- function(sourceDF=originData,sourceDFRange=c(3:9),records=c(1:nrow(originData))){
+  # 內部變數
+      #countMX
+      #splitDataSet
+  # 先生成一個data.frame，用來放球號，每一次抽球各球號出現的次數
   countMX <- data.frame(number=1:49,one=rep(0,49),two=rep(0,49),three=rep(0,49),four=rep(0,49),five=rep(0,49),six=rep(0,49),special=rep(0,49),sum=rep(0,49))
   
+  # splitDataSet:生成一份我們所指定欄位與列數的檔案
+  splitDataSet <- sourceDF[records,]
+  
+  # 
   for(j in sourceDFRange){
-    for(i in sourceDF[,j]){
+    for(i in splitDataSet[,j]){
       countMX[countMX[['number']]==i,j-1]=countMX[countMX[['number']]==i,j-1]+1
     }  
   }
@@ -90,7 +117,7 @@ tryCatch({
 #}
 
 #for(i in 2:9){
-#  barplot(as.matrix(t(countDF[,i])))
+#  barplot(as.matrix(t(countMX49[,i])))
 #}
 #barplot(as.matrix(t(countDF[,2])))
 #max(countDF[,9])
@@ -101,16 +128,18 @@ tryCatch({
 ### 生成同現矩陣之函數
 ## input parameters:
 ##    sourceDF:為readFileFN之output，讀入原始資料，預設為originData     
+##    records: 資料筆數，預設為全部資料
+##    terms: 取第幾次抽球的出現次數，計算同現矩陣，預設為第一次到第七次 
 ## output data type:
 ##    a matrix 同現矩陣
-itemMatrix49FN <- function(sourceDF=originData){
+itemMatrix49FN <- function(sourceDF=originData,records=nrow(sourceDF),terms=c(3:9)){
   # 生成一個全為0的49*49矩陣
   itemMatrix <- matrix(rep(0,49^2),ncol=49,dimnames=list(1:49,1:49))  
   # 開始進行計次，將原始資料的每一筆紀錄轉換並記錄至同現矩陣中
   for (i in 1:nrow(sourceDF)){
     
     # 取出原始資料的七個中獎號碼
-    temp <- t(sourceDF[i,3:9])
+    temp <- t(sourceDF[i,terms])
     
     # 對該筆記錄進行排列組合，把所有可能的排列整理出來
     temp1x1 <- t(combn(temp,2)) 
@@ -253,21 +282,41 @@ tryCatch({
 ## input parameters:
 ##    recommendResult:recommendResultFN49之output，為各號碼之推薦分數
 ##    score:分數下限，用來過濾recommendResult之用
+##    reserve:選擇單次抽號模式時，需輸入球號。
 ## output parameters:
 ##    a data frame 欄位一是球號 欄位二是推薦分數
-recommendResultFN49 <- function(recommendResult=recommendResult49,score=100){  
+recommendResultFN49 <- function(recommendResult=recommendResult49,score=100,reserve=NULL){  
   if(length(which(recommendResult[,1]>score))<6){
     # 重新輸入部分矩陣
     # 同現矩陣與部分矩陣相內積
     # 重新呼叫此function，進行判斷 
-    recommendMX49 <<- partialMatrix49FN(chooseBall49FN(1:4))
+    recommendMX49 <<- partialMatrix49FN(chooseBall49FN(c(2,3,4,5)))
     recommendResult49 <<- recommendMatrix49FN()
     print("重新抽球")
     #print(score)
     recommendResultFN49(recommendResult49,score=score)
+  }else if(length(reserve)!=0){
+    # 返回結果必須是六個數字及推薦分數
+    # 返回的結果必須包含保留數字
+    step1AddColumnNumber <- as.matrix(data.frame(Number=rownames(recommendResult),Score=recommendResult[,1]))
+    step2SortScore <- as.matrix(sort(step1AddColumnNumber[,2],decreasing = T))
+    #View(step2SortScore)
+    step3Extract <- step2SortScore[rownames(step2SortScore) %in% reserve,]
+    #print(rownames(step2SortScore) %in% reserve)
+    #View(step3Extract)
+    step4GetOther <- step2SortScore[!(rownames(step2SortScore) %in% reserve),]
+    #View(step4GetOther)
+    tempValue <- 6-length(reserve)
+    #print(tempValue)
+    step5Bind <- c(step3Extract,step4GetOther[1:tempValue])
+    #View(step5Bind)
+    #print(as.data.frame(step5Bind))
+    step5Bind <- as.matrix(step5Bind)
+    step6Result <- data.frame(Number=rownames(step5Bind),Score=step5Bind[,1])
+    return(step6Result)
   }else{
     # 取出前六個推薦分數高的號碼
-    step1AddColumnNumber <- as.matrix(data.frame(Number=rownames(recommendResult),score=recommendResult[,1]))
+    step1AddColumnNumber <- as.matrix(data.frame(Number=rownames(recommendResult),Score=recommendResult[,1]))
     step2SortScore <- as.matrix(sort(step1AddColumnNumber[,2],decreasing = T))
     result <- data.frame(Number=rownames(step2SortScore)[1:6],Score=step2SortScore[1:6])
     return(result)
@@ -362,6 +411,8 @@ autoAnalysisProcess <- function(sourceDF="originData.csv",crawler=F){
 
 ##############################################
 
+
+##############################################
 ### 尋找最常出現組合
 #
 #frquentItemOriginData <- originData[,3:9]
