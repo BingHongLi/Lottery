@@ -1,5 +1,5 @@
 ###### 樂透推薦自動化流程
-setwd("E:/LBH/Dropbox/GitHub/Lottery/")
+#setwd("E:/LBH/Dropbox/GitHub/Lottery/")
 source("lotteryAnalysis.R",encoding="UTF-8")
 
 ######################################################

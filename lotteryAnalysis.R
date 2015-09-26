@@ -396,7 +396,7 @@ tryCatch({
 
 autoAnalysisProcess <- function(sourceDF="originData.csv",crawler=F){
   if(crawler==T){
-    executeCrawler49FN()  
+    executeCrawler49FN(9999)  
   }
   originData <<- readFile49FN(sourceDF)
   itemMatrix49<<- itemMatrix49FN()
@@ -409,8 +409,7 @@ autoAnalysisProcess <- function(sourceDF="originData.csv",crawler=F){
 }
 
 
-##############################################
-
+#############################################
 
 ##############################################
 ### 尋找最常出現組合
